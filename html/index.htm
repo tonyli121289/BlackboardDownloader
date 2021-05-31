@@ -1,0 +1,196 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <link rel="stylesheet" type="text/css" href="shared.css" id="css_0" />
+  <link rel="stylesheet" type="text/css" href="theme.css" id="css_1" />
+  <link rel="stylesheet" type="text/css" href="app_nav.css" id="css_2" />
+  <link rel="stylesheet" type="text/css" href="brand.css" id="css_3" />
+  <link rel="stylesheet" type="text/css" href="prism.css" id="css_4" />
+  <link rel="stylesheet" type="text/css" href="video-integration.css" id="css_5" />
+  <link rel="stylesheet" type="text/css" href="ally-integration.css" id="css_6" />
+  <title></title>
+  <script src="data.js"></script>
+  <script src="jquery-3.6.0.min.js"></script>
+  <script>
+  function preProcess(d, p){
+    d.parent=p;
+    if(d.contents!=undefined){
+        for(var i in d.contents){
+            preProcess(d.contents[i],d);
+        }
+    }
+  }
+  var courseList=data;
+  $(function(){
+    for(i in courseList){
+        if(!courseList[i].contents)continue;
+        preProcess(courseList[i],null);
+        $("#content_listContainer").append(mkCourseLi(courseList[i]))
+    }
+  });
+  
+  function clear_file_name(s){
+    return s.replace(/[\[\\\/:*?\"<>|\]]/,"_")
+  }
+  
+  function mkCourseLi(data){
+    var li=$('<li  class="clearfix liItem read"/>')
+    li.append('<img src="folder_on.svg" class="item_icon" />')
+    li.append(
+        $('<div class="item clearfix">')
+        .append(
+            $("<h3/>").append(
+                $("<a/>").attr("href","javascript:").append(
+                    $("<span/>").css("color","#000").text(data.course.displayName)
+                )
+                .data("course",data)
+                .click(function(){
+                    showContent($(this).data("course"));
+                })
+            )
+        )
+    )
+    return li;
+  }
+  function mkItem(data){
+  
+    var img=$("<img/>").addClass("item_icon").attr("src","file_on.svg")
+    
+    if(!data.contentHandler || data.contentHandler.id=="resource/x-bb-folder"){
+        img.attr("src","folder_on.svg")
+    }else if(data.contentHandler.id=="resource/x-bb-file"){
+        img.attr("src","file_on.svg")
+    }else if(data.contentHandler.id=="resource/x-bb-document"){
+        img.attr("src","document_on.svg")
+    }else if(data.contentHandler.id=="resource/x-bb-assignment"){
+        img.attr("src","assignment_on.svg")
+    }else{
+        console.log(data.contentHandler.id)
+    }
+    var li=$('<li  class="clearfix liItem read"/>')
+    li.append(img)
+    
+    
+    li.append(
+        $('<div class="item clearfix">')
+        .append(
+            $("<h3/>").append(
+                $("<a/>").attr("href","javascript:").append(
+                    $("<span/>").css("color","#000").html(data.title)
+                )
+                .data("content",data)
+                .click(function(){
+                    if($(this).data("content").files && $(this).data("content").files.length==1){
+                        window.open($(this).data("content").files[0].path,'_blank')
+                    }else{
+                        showContent($(this).data("content"));
+                    }
+                })
+            )
+        )
+    )
+    var detailsDiv=null;
+    var showFileList=false;
+    if(data.files && data.files.length>0 && (!data.contentHandler || data.contentHandler.id!="resource/x-bb-file")){
+        showFileList=true;
+    }
+    if(data.files && data.files.length>1){
+        showFileList=true;
+    }
+    
+        
+    if(showFileList){
+        if(detailsDiv==null){
+            detailsDiv=$("<div/>").addClass("details");
+        }
+     
+        
+        var ul = $('<ul class="attachments clearfix"/>')
+        for(var i in data.files){
+            var f=data.files[i]
+            ul.append(
+                $("<li>").css("margin-top","3px").append(
+                    $("<a/>").attr("href",f.path).attr("target","_blank")
+                    .text(" "+f.fileName)
+                    .prepend(
+                        $("<img/>").attr("src","cal_year_event.gif")
+                    )
+                )
+            )
+        }
+        
+        detailsDiv.append(
+            $('<div class="contextItemDetailsHeaders clearfix"/>').append(
+                $('<div class="detailsLabel u_floatThis-left">Attached Files:</div>')).append($('<div class="detailsValue u_floatThis-left"/>').append(ul)
+            )
+        )
+        
+    }
+    
+    if(data.body){
+        if(detailsDiv==null){
+            detailsDiv=$("<div/>").addClass("details");
+        }
+        detailsDiv.append(
+            $('<div class="vtbegenerated"/>').append($('<div class="vtbegenerated_div">').html(data.body))
+        )
+    }
+    
+    if(detailsDiv!=null){
+        li.append(detailsDiv);
+    }
+    return li;
+  }
+  function showContent(data){
+      
+    showPath(data);
+    $("#titleSpan").html(data.title?data.title:data.course.displayName)
+    $("#content_listContainer").empty();
+    for(var i in data.contents){
+        if(data.contents[i].contentHandler && data.contents[i].contentHandler.id=="resource/x-bb-folder" && (!data.contents[i].contents || data.contents[i].contents.length==0)){
+            continue;
+        }
+        $("#content_listContainer").append(mkItem(data.contents[i]))
+    } 
+  }
+  
+  function showPath(data){
+    var $p=$("#pathSpan");
+    $p.empty();
+    var cur=data;
+    while(cur.parent!=null){
+        $p.prepend($("<a href='javascript:'/>").html(cur.title).click(function(){ showContent(cur) }));    
+        $p.prepend(" / ")
+        cur=cur.parent;
+    }
+    $p.prepend($("<a href='javascript:'/>").html(cur.course.displayId).click(function(){ showContent(cur) }));
+  }
+  </script>
+</head>
+<body>
+  <div role="main" id="contentPanel" class="contentPane contcollapsed">
+    
+    <div class="shadow">
+      <div id="editmodeWrapper">
+        <div id="content" class="contentBox">
+          <div class="pageTitle">
+            <div style="font-size:18pt">
+                <a href="javascript:location.reload()">🏠</a> /
+                <span id="pathSpan"></span>
+            </div>
+          </div>
+          <div id="pageTitleDiv" class="pageTitle clearfix">
+            <div id="pageTitleBar" class="pageTitleIcon" tabindex="0">
+              <h1 id="pageTitleHeader" tabindex="-1"><span id="pageTitleText"><span style="color:#000000;" id="titleSpan">Courses</span></span></h1><span id="_titlebarExtraContent" class="titleButtons"></span>
+            </div>
+          </div>
+          <div class="container clearfix" id="containerdiv">
+            <ul id="content_listContainer" class="contentList"> 
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+  </div>
+  </body>
+</html>
